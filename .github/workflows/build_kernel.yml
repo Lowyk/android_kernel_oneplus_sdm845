@@ -1,0 +1,60 @@
+name: Build fajita kernel (MADV_WIPEONFORK backport)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install host build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison flex libssl-dev libelf-dev python3 python-is-python3 \
+            build-essential kmod cpio rsync curl git
+
+      - name: Fetch AOSP prebuilt clang (Android 11 era, r383902)
+        run: |
+          mkdir -p toolchain/clang
+          curl -L -o clang.tar.gz \
+            "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/android-11.0.0_r48/clang-r383902.tar.gz"
+          tar -xzf clang.tar.gz -C toolchain/clang
+          echo "$PWD/toolchain/clang/bin" >> "$GITHUB_PATH"
+
+      - name: Fetch AOSP prebuilt GCC aarch64 (for binutils/libgcc only, never as the compiler)
+        run: |
+          mkdir -p toolchain/gcc-aarch64
+          curl -L -o gcc-aarch64.tar.gz \
+            "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/refs/tags/android-11.0.0_r48.tar.gz"
+          tar -xzf gcc-aarch64.tar.gz -C toolchain/gcc-aarch64
+          echo "$PWD/toolchain/gcc-aarch64/bin" >> "$GITHUB_PATH"
+
+      - name: Configure
+        run: |
+          export ARCH=arm64
+          export SUBARCH=arm64
+          make O=out ARCH=arm64 sdm845-perf_defconfig
+
+      - name: Build Image
+        run: |
+          make -j"$(nproc)" O=out ARCH=arm64 \
+            CC=clang \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CROSS_COMPILE=aarch64-linux-android- \
+            2>&1 | tee build.log
+
+      - name: Upload build log (always, for diagnosing failures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+
+      - name: Upload Image
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image
+          path: out/arch/arm64/boot/Image
