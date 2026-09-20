@@ -44,6 +44,7 @@ jobs:
             CC=clang \
             CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-android- \
+            Image \
             2>&1 | tee build.log
 
       - name: Upload build log (always, for diagnosing failures)
