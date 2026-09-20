@@ -51,6 +51,20 @@ jobs:
           export SUBARCH=arm64
           make O=out ARCH=arm64 sdm845-perf_defconfig
 
+      - name: Dump real KBUILD_CFLAGS and reproduce the failing test with visible errors
+        run: |
+          set -x
+          MAKEARGS="O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android-"
+          KCFLAGS=$(printf 'print-%%: ; @echo $($*)\n' | make -f Makefile -f /dev/stdin $MAKEARGS print-KBUILD_CFLAGS 2>&1)
+          KCPPFLAGS=$(printf 'print-%%: ; @echo $($*)\n' | make -f Makefile -f /dev/stdin $MAKEARGS print-KBUILD_CPPFLAGS 2>&1)
+          echo "KBUILD_CFLAGS=$KCFLAGS"
+          echo "KBUILD_CPPFLAGS=$KCPPFLAGS"
+          echo 'int main(void){return 0;}' > /tmp/t.c
+          set +e
+          clang -Werror $KCPPFLAGS $KCFLAGS -fstack-protector-strong -c -x c /tmp/t.c -o /tmp/t.o
+          echo "REPRO TEST exit=$?"
+          set -e
+
       - name: Build Image
         run: |
           set -o pipefail
