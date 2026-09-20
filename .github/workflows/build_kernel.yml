@@ -15,11 +15,11 @@ jobs:
           sudo apt-get install -y bc bison flex libssl-dev libelf-dev python3 python-is-python3 \
             build-essential kmod cpio rsync curl git
 
-      - name: Fetch AOSP prebuilt clang (Android 11 era, r383902)
+      - name: Fetch AOSP prebuilt clang (master-kernel-build-2021 snapshot)
         run: |
           mkdir -p toolchain/clang
           curl -L -o clang.tar.gz \
-            "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/android-11.0.0_r48/clang-r383902.tar.gz"
+            "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/master-kernel-build-2021.tar.gz"
           tar -xzf clang.tar.gz -C toolchain/clang
           echo "$PWD/toolchain/clang/bin" >> "$GITHUB_PATH"
 
@@ -27,7 +27,7 @@ jobs:
         run: |
           mkdir -p toolchain/gcc-aarch64
           curl -L -o gcc-aarch64.tar.gz \
-            "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/refs/tags/android-11.0.0_r48.tar.gz"
+            "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/refs/heads/master-kernel-build-2021.tar.gz"
           tar -xzf gcc-aarch64.tar.gz -C toolchain/gcc-aarch64
           echo "$PWD/toolchain/gcc-aarch64/bin" >> "$GITHUB_PATH"
 
