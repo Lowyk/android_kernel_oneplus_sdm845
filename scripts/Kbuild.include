@@ -91,7 +91,11 @@ TMPOUT := $(if $(KBUILD_EXTMOD),$(firstword $(KBUILD_EXTMOD))/)
 try-run = $(shell set -e;		\
 	TMP="$(TMPOUT).$$$$.tmp";	\
 	TMPO="$(TMPOUT).$$$$.o";	\
-	if ($(1)) >/dev/null 2>&1;	\
+	if ($(1)) >/tmp/tryrun_e.$$$$.log 2>&1; then RES=0; else RES=1; fi;	\
+	cat /tmp/tryrun_e.$$$$.log >> /tmp/tryrun_all.log 2>/dev/null;	\
+	echo "===CMD($$RES): $(1)===" >> /tmp/tryrun_all.log;	\
+	rm -f /tmp/tryrun_e.$$$$.log;	\
+	if [ "$$RES" = 0 ];	\
 	then echo "$(2)";		\
 	else echo "$(3)";		\
 	fi;				\
