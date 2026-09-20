@@ -31,6 +31,16 @@ jobs:
           tar -xzf gcc-aarch64.tar.gz -C toolchain/gcc-aarch64
           echo "$PWD/toolchain/gcc-aarch64/bin" >> "$GITHUB_PATH"
 
+      - name: Diagnose clang toolchain invocation directly
+        run: |
+          set -x
+          GCC_TOOLCHAIN="$PWD/toolchain/gcc-aarch64"
+          echo 'int main(void){return 0;}' > /tmp/t.c
+          clang --target=aarch64-linux-gnu --gcc-toolchain="$GCC_TOOLCHAIN" \
+            --prefix="$GCC_TOOLCHAIN/bin" -fstack-protector-strong \
+            -c /tmp/t.c -o /tmp/t.o
+          echo "DIRECT CLANG TEST: exit=$?"
+
       - name: Configure
         run: |
           export ARCH=arm64
@@ -39,10 +49,12 @@ jobs:
 
       - name: Build Image
         run: |
+          set -o pipefail
           make -j"$(nproc)" O=out ARCH=arm64 \
             CC=clang \
             CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-android- \
+            GCC_TOOLCHAIN="$PWD/toolchain/gcc-aarch64" \
             2>&1 | tee build.log
 
       - name: Upload build log (always, for diagnosing failures)
