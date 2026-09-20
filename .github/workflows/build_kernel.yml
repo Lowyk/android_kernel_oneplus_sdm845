@@ -31,20 +31,6 @@ jobs:
           tar -xzf gcc-aarch64.tar.gz -C toolchain/gcc-aarch64
           echo "$PWD/toolchain/gcc-aarch64/bin" >> "$GITHUB_PATH"
 
-      - name: Diagnose clang toolchain invocation directly (matches real -no-integrated-as build flags)
-        run: |
-          set -x
-          which aarch64-linux-android-elfedit
-          which aarch64-linux-android-as
-          GCC_TOOLCHAIN_DIR="$(dirname "$(which aarch64-linux-android-elfedit)")"
-          GCC_TOOLCHAIN="$(realpath "$GCC_TOOLCHAIN_DIR/..")"
-          echo "GCC_TOOLCHAIN_DIR=$GCC_TOOLCHAIN_DIR  GCC_TOOLCHAIN=$GCC_TOOLCHAIN"
-          echo 'int main(void){return 0;}' > /tmp/t.c
-          clang --target=aarch64-linux-gnu --prefix="$GCC_TOOLCHAIN_DIR" \
-            --gcc-toolchain="$GCC_TOOLCHAIN" -no-integrated-as \
-            -fstack-protector-strong -c /tmp/t.c -o /tmp/t.o
-          echo "DIRECT CLANG TEST (with -no-integrated-as): exit=$?"
-
       - name: Configure
         run: |
           export ARCH=arm64
@@ -54,21 +40,18 @@ jobs:
       - name: Build Image
         run: |
           set -o pipefail
-          rm -f /tmp/tryrun_all.log
           make -j"$(nproc)" O=out ARCH=arm64 \
             CC=clang \
             CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-android- \
             2>&1 | tee build.log
 
-      - name: Upload build log + real try-run stderr (always, for diagnosing failures)
+      - name: Upload build log (always, for diagnosing failures)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-log
-          path: |
-            build.log
-            /tmp/tryrun_all.log
+          path: build.log
 
       - name: Upload Image
         if: success()
